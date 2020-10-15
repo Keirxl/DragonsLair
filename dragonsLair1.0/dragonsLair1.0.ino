@@ -1,10 +1,10 @@
 #define FIELD_COLOR makeColorHSB(200,60,100)
-#define FIRE_DURATION 1500
+#define FIRE_DURATION 1300
 #define POISON_DURATION 3000
 #define VOID_DURATION 5000
-#define FIRE_DELAY_TIME 500
-#define VOID_DELAY_TIME 500
-#define POISON_DELAY_TIME 1000
+#define FIRE_DELAY_TIME 175
+#define VOID_DELAY_TIME 250
+#define POISON_DELAY_TIME 750
 #define DRAGON_WAIT_TIME 7000
 #define DRAGON_ATTACK_DURATION 1000
 //[A][B][C][D][E][F]
@@ -25,7 +25,6 @@ Timer dragonWaitTimer;
 Timer dragonAttackTimer;
 
 void setup() {
-  // put your setup code here, to run once:
   randomize();
 }
 
@@ -59,17 +58,20 @@ void loop() {
   }
 
   //dragonAttacks
+  //CHANGE THIS:
+  // add time to the DRAGON_WAIT_TIME according to which attack you are doing
+  // because you want to give void longer to dissapate and less time to fire
   if(isDragon){
      if(dragonWaitTimer.isExpired()){
         if(noNeighborsAttacking){
           dragonAttackTimer.set(DRAGON_ATTACK_DURATION);
-          byte whichAttack=random(99);
-          if(whichAttack<33){
+          byte whichAttack=random(3);
+          if(whichAttack==1){
             attackSignal=FIRE;
-          }else if(33<=whichAttack<66){
-            attackSignal=POISON;
-          }else{
+          }else if(whichAttack==2){
             attackSignal=VOID;
+          }else if(whichAttack==3){
+            attackSignal=POISON;
           }
         }
       dragonWaitTimer.set(DRAGON_WAIT_TIME);
@@ -89,7 +91,7 @@ void inertLoop(){
   //recieves attacks and delays sending them until it's time 
   FOREACH_FACE(f) {
     if (!isValueReceivedOnFaceExpired(f)) {//a neighbor!
-      if (getAttackSignal(getLastValueReceivedOnFace(f)) == FIRE || POISON || VOID) {
+      if (getAttackSignal(getLastValueReceivedOnFace(f)) == FIRE || getAttackSignal(getLastValueReceivedOnFace(f))==POISON || getAttackSignal(getLastValueReceivedOnFace(f))==VOID) {
         if(hiddenAttackSignal==INERT){
           hiddenAttackSignal=getAttackSignal(getLastValueReceivedOnFace(f));
           if(hiddenAttackSignal==FIRE){
@@ -172,7 +174,7 @@ void resolveLoop(){
   if(!isDragon){
     FOREACH_FACE(f) {
       if (!isValueReceivedOnFaceExpired(f)) {//a neighbor!
-        if (getAttackSignal(getLastValueReceivedOnFace(f)) == FIRE || POISON || VOID) {//This neighbor isn't in RESOLVE. Stay in RESOLVE
+        if (getAttackSignal(getLastValueReceivedOnFace(f)) == FIRE || getAttackSignal(getLastValueReceivedOnFace(f))==POISON || getAttackSignal(getLastValueReceivedOnFace(f))==VOID) {//This neighbor isn't in RESOLVE. Stay in RESOLVE
           attackSignal = RESOLVE;
         }
       }
