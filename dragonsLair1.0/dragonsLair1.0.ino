@@ -61,6 +61,7 @@ void loop() {
   //CHANGE THIS:
   // add time to the DRAGON_WAIT_TIME according to which attack you are doing
   // because you want to give void longer to dissapate and less time to fire
+  //also add something so that there's a chance that no attack will happen at all
   if(isDragon){
      if(dragonWaitTimer.isExpired()){
         if(noNeighborsAttacking){
