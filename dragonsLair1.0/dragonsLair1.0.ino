@@ -1,3 +1,8 @@
+//Notes as of 10/20/2020
+// Mining isn't quite there. the handoff isn't up and running
+// correct connections get stuck in the correct connection loop (WHITE) and incorrect gets stuck in incorrect loop (BLUE)
+// 
+
 #define FIELD_COLOR makeColorHSB(200,60,100)
 #define FIRE_DURATION 1300
 #define POISON_DURATION 3000
@@ -157,21 +162,23 @@ void inertLoop(){
     if(ignoreAttacksTimer.isExpired()){
       FOREACH_FACE(f) {
         if (!isValueReceivedOnFaceExpired(f)) {//a neighbor!
-          if (getAttackSignal(getLastValueReceivedOnFace(f)) == FIRE || getAttackSignal(getLastValueReceivedOnFace(f))==POISON || getAttackSignal(getLastValueReceivedOnFace(f))==VOID) {
-            if(hiddenAttackSignal==INERT){
-              hiddenAttackSignal=getAttackSignal(getLastValueReceivedOnFace(f));
-              if(hiddenAttackSignal==FIRE){
-                //set timer and display fire but don't BE fire until timer is up
-                delayTimer.set(FIRE_DELAY_TIME);
-              }else if(hiddenAttackSignal==POISON){
-                //setTimer for poisionDisplay but don't BE poison until timer is out
-                delayTimer.set(POISON_DELAY_TIME);
-              }else if(hiddenAttackSignal==VOID){
-                //set timer and display void, but don't BE void until timer is out
-                delayTimer.set(VOID_DELAY_TIME);
+ 
+            if (getAttackSignal(getLastValueReceivedOnFace(f)) == FIRE || getAttackSignal(getLastValueReceivedOnFace(f))==POISON || getAttackSignal(getLastValueReceivedOnFace(f))==VOID) {
+              if(hiddenAttackSignal==INERT){
+                hiddenAttackSignal=getAttackSignal(getLastValueReceivedOnFace(f));
+                if(hiddenAttackSignal==FIRE){
+                  //set timer and display fire but don't BE fire until timer is up
+                  delayTimer.set(FIRE_DELAY_TIME);
+                }else if(hiddenAttackSignal==POISON){
+                  //setTimer for poisionDisplay but don't BE poison until timer is out
+                  delayTimer.set(POISON_DELAY_TIME);
+                }else if(hiddenAttackSignal==VOID){
+                  //set timer and display void, but don't BE void until timer is out
+                  delayTimer.set(VOID_DELAY_TIME);
+                }
               }
             }
-          }
+   
         }
       }
     }
@@ -210,7 +217,7 @@ void inertLoop(){
         }else{
           ignoredFaces[f]=0;
         }
-    }
+      }
 
     // Player mining 
     FOREACH_FACE(f){
