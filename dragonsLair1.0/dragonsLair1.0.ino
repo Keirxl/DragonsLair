@@ -10,18 +10,26 @@
 #define POISON_EXTRA_TIME 4000
 #define DRAGON_WAIT_TIME 5000
 #define DRAGON_ATTACK_DURATION 1000
-#define IGNORE_TIME 1000
+#define IGNORE_TIME 700
+#define GOLD_MINE_TIME 6000 //cause half of that is 3 sec.
+#define TREASURE_SPAWN_TIME 2000
 
 //[A][B][C][D][E][F]
 
 enum blinkType {FIELD,PLAYER}; //[A]
 byte blinkType;
-enum attackSignal {INERT,FIRE,POISON,VOID,RESOLVE}; //[B][C][D]
+enum attackSignal {INERT,FIRE,POISON,VOID,RESOLVE,CORRECT,INCORRECT}; //[B][C][D]
 byte attackSignal=INERT;
 byte hiddenAttackSignal;
 byte sendData;
-
+byte playerFaceSignal[6]={FIRE,INERT,POISON,INERT,VOID,INERT}; //attacks correspond to treasure types for player pieces
+byte permanentPlayerFaceType[6]={FIRE,INERT,POISON,INERT,VOID,INERT};
 bool isDragon=false;
+
+int playerScore=0;
+byte ignoredFaces[6]={0,0,0,0,0,0};
+byte luck=6;
+bool isDead=false;
 
 byte treasureType=0; // 1 for ruby, 2 for emerald, 3 for Gold
 Color treasureColor[3]={RED,GREEN,YELLOW};
@@ -33,11 +41,14 @@ Timer attackDurationTimer;
 Timer dragonWaitTimer;
 Timer dragonAttackTimer;
 Timer ignoreAttacksTimer;
+Timer goldMineTimer;
+Timer treasureSpawnTimer;
 
 void setup() {
   randomize();
   byte randomTreasure=random(99);
   treasureType=(randomTreasure%3)+1;
+  blinkType=FIELD;
 }
 
 void loop() {
@@ -58,6 +69,12 @@ void loop() {
     case RESOLVE:
       resolveLoop();
       break;
+    case CORRECT:
+      correctLoop();
+      break;
+    case INCORRECT:
+      incorrectLoop();
+      break;
   }
   
   //sets the dragon
@@ -70,9 +87,10 @@ void loop() {
   }
 
   //sets the player piece
-  if(buttonDoubleClicked()){
-    if(isAlone){
-      blinkType=PLAYER;
+  if(isAlone()){
+    if(buttonDoubleClicked()){
+        blinkType=PLAYER;
+        isDead=false;
     }
   }
 
@@ -105,9 +123,15 @@ void loop() {
      }
   }
 
-
+  if(blinkType==FIELD){
    sendData = (blinkType<<5) + (attackSignal<<2);
    setValueSentOnAllFaces(sendData);
+  }else if (blinkType==PLAYER){
+    FOREACH_FACE(f){
+      sendData = (blinkType<<5) + (playerFaceSignal[f]<<2);
+      setValueSentOnFace(sendData,f);
+    }
+  }
 
    displayLoop();
   
@@ -115,54 +139,110 @@ void loop() {
 
 void inertLoop(){
 
-  //handles mining
-  miningLoop();
+  //All things not Player Piece related
+  if(blinkType==FIELD){
+    //handles mining
+    miningLoop();
   
-
-  //recieves attacks and delays sending them until it's time 
-  if(ignoreAttacksTimer.isExpired()){
-    FOREACH_FACE(f) {
-      if (!isValueReceivedOnFaceExpired(f)) {//a neighbor!
-        if (getAttackSignal(getLastValueReceivedOnFace(f)) == FIRE || getAttackSignal(getLastValueReceivedOnFace(f))==POISON || getAttackSignal(getLastValueReceivedOnFace(f))==VOID) {
-          if(hiddenAttackSignal==INERT){
-            hiddenAttackSignal=getAttackSignal(getLastValueReceivedOnFace(f));
-            if(hiddenAttackSignal==FIRE){
-              //set timer and display fire but don't BE fire until timer is up
-              delayTimer.set(FIRE_DELAY_TIME);
-            }else if(hiddenAttackSignal==POISON){
-              //setTimer for poisionDisplay but don't BE poison until timer is out
-              delayTimer.set(POISON_DELAY_TIME);
-            }else if(hiddenAttackSignal==VOID){
-              //set timer and display void, but don't BE void until timer is out
-              delayTimer.set(VOID_DELAY_TIME);
+    //treasure spawning
+    if(treasureType==0){
+      if(treasureSpawnTimer.isExpired()){
+        treasureType=(random(99)%3)+1;
+      }
+    }
+    
+    //ADD PIECE SO SIGNAL PROPOGATES THROUGH FIELD BUT NOT PLAYER?
+    //the abouve techinally doesn't matter...
+    //recieves attacks and delays sending them until it's time 
+    if(ignoreAttacksTimer.isExpired()){
+      FOREACH_FACE(f) {
+        if (!isValueReceivedOnFaceExpired(f)) {//a neighbor!
+          if (getAttackSignal(getLastValueReceivedOnFace(f)) == FIRE || getAttackSignal(getLastValueReceivedOnFace(f))==POISON || getAttackSignal(getLastValueReceivedOnFace(f))==VOID) {
+            if(hiddenAttackSignal==INERT){
+              hiddenAttackSignal=getAttackSignal(getLastValueReceivedOnFace(f));
+              if(hiddenAttackSignal==FIRE){
+                //set timer and display fire but don't BE fire until timer is up
+                delayTimer.set(FIRE_DELAY_TIME);
+              }else if(hiddenAttackSignal==POISON){
+                //setTimer for poisionDisplay but don't BE poison until timer is out
+                delayTimer.set(POISON_DELAY_TIME);
+              }else if(hiddenAttackSignal==VOID){
+                //set timer and display void, but don't BE void until timer is out
+                delayTimer.set(VOID_DELAY_TIME);
+              }
             }
           }
         }
       }
     }
-  }
-
-//When the delay is over, it's time to send the signal and set the duration of the attack
- if(delayTimer.isExpired()){
-   attackSignal=hiddenAttackSignal;
-   switch(hiddenAttackSignal){
-      case FIRE:
-        attackDurationTimer.set(FIRE_DURATION);
-        break;
-      case POISON:
-        attackDurationTimer.set(POISON_DURATION);
-        break;
-      case VOID:
-        attackDurationTimer.set(VOID_DURATION);
-        break;
-   }
-   hiddenAttackSignal=INERT;
- }
-
-
-
-
   
+  //When the delay is over, it's time to send the signal and set the duration of the attack
+   if(delayTimer.isExpired()){
+     attackSignal=hiddenAttackSignal;
+     switch(hiddenAttackSignal){
+        case FIRE:
+          attackDurationTimer.set(FIRE_DURATION);
+          break;
+        case POISON:
+          attackDurationTimer.set(POISON_DURATION);
+          break;
+        case VOID:
+          attackDurationTimer.set(VOID_DURATION);
+          break;
+     }
+     hiddenAttackSignal=INERT;
+   }
+ }else{
+ //PLAYER Pieces
+
+
+      //listen for damage
+      FOREACH_FACE(f) {
+        if (!isValueReceivedOnFaceExpired(f)) {//a neighbor!
+          if (getBlinkType(getLastValueReceivedOnFace(f)) == FIELD){
+            if (getAttackSignal(getLastValueReceivedOnFace(f)) == FIRE || getAttackSignal(getLastValueReceivedOnFace(f))==POISON || getAttackSignal(getLastValueReceivedOnFace(f))==VOID) {
+              if(ignoredFaces[f]==0){
+                luck--;
+                ignoredFaces[f]=1; 
+              }
+            }
+          }
+        }else{
+          ignoredFaces[f]=0;
+        }
+    }
+
+    // Player mining 
+    FOREACH_FACE(f){
+      if (!isValueReceivedOnFaceExpired(f)) {
+        if (getBlinkType(getLastValueReceivedOnFace(f)) == FIELD){
+          if (getAttackSignal(getLastValueReceivedOnFace(f)) == CORRECT){
+            if(ignoredFaces[f]==0){
+              if(permanentPlayerFaceType[f]==4){
+                playerScore+=3;
+              }else{
+                playerScore++;
+              }
+              ignoredFaces[f]==1;
+            }
+            playerFaceSignal[f]==CORRECT;
+          }else if(getAttackSignal(getLastValueReceivedOnFace(f)) == INCORRECT){
+            if(ignoredFaces[f]==0){
+              luck--;
+              ignoredFaces[f]==1;
+            }
+            playerFaceSignal[f]==INCORRECT;
+          }
+        }
+      }else{
+        ignoredFaces[f]==0;
+        playerFaceSignal[f]==permanentPlayerFaceType[f];
+      }
+    }
+   if(luck<1){
+      isDead=true;
+   }
+ }
 }
 
 void fireLoop(){
@@ -217,10 +297,52 @@ void resolveLoop(){
   }
 }
 
+void correctLoop(){
+  //if a piece is correctly mined and it hears a PLAYER mirror that, then resolve
+  FOREACH_FACE(f){
+    if (!isValueReceivedOnFaceExpired(f)){
+      if (getBlinkType(getLastValueReceivedOnFace(f))==PLAYER){
+        if (getAttackSignal(getLastValueReceivedOnFace(f))==CORRECT){
+           treasureType=0;
+           treasureSpawnTimer.set(TREASURE_SPAWN_TIME);
+           attackSignal=INERT;
+        }
+      }
+    }
+  }
+}
+
+void incorrectLoop(){
+  FOREACH_FACE(f){
+    if (!isValueReceivedOnFaceExpired(f)){
+      if (getBlinkType(getLastValueReceivedOnFace(f))==PLAYER){
+        if (getAttackSignal(getLastValueReceivedOnFace(f))==INCORRECT){
+           attackSignal=INERT;
+        }
+      }
+    }
+  }
+}
+
 void displayLoop(){
   if(isDragon){
     setColor(MAGENTA);
-  }else{
+  }else if(blinkType==PLAYER){
+    if(!isAlone()){
+      FOREACH_FACE(f){
+        if(getAttackSignal(getLastValueReceivedOnFace(f))==CORRECT){
+          setColorOnFace(GREEN,f);
+        }else if(getAttackSignal(getLastValueReceivedOnFace(f))==INCORRECT){
+          setColorOnFace(RED,f);
+        }
+      }
+    }else{
+      setColor(FIELD_COLOR);
+      setColorOnFace(RED,0);
+      setColorOnFace(GREEN,2);
+      setColorOnFace(YELLOW,4);
+    }
+  }else if(blinkType==FIELD){
     switch(attackSignal){
       case FIRE:
         setColor(ORANGE);
@@ -234,8 +356,20 @@ void displayLoop(){
       case INERT:
         fieldDisplay();
         break;
-      case RESOLVE:
+      case CORRECT:
+        setColor(WHITE);
+          FOREACH_FACE(f){
+            if(getAttackSignal(getLastValueReceivedOnFace(f))==CORRECT){
+              setColorOnFace(GREEN,f);
+            }else if(getAttackSignal(getLastValueReceivedOnFace(f))==INCORRECT){
+              setColorOnFace(RED,f);
+            }
+          }
+        break;
+      case INCORRECT:
         setColor(BLUE);
+        break;
+      case RESOLVE:
         break;
     }
   }
@@ -246,9 +380,19 @@ void displayLoop(){
 void fieldDisplay(){
   FOREACH_FACE(f){
     if (!isValueReceivedOnFaceExpired(f)) {
-      setColorOnFace(FIELD_COLOR,f);
+      if (getBlinkType(getLastValueReceivedOnFace(f)) == PLAYER){
+        if (getAttackSignal(getLastValueReceivedOnFace(f)) == FIRE){
+          setColorOnFace(WHITE,f); 
+        }
+      }else{
+        setColorOnFace(FIELD_COLOR,f);
+      }
     }else{
-      setColorOnFace(treasureColor[treasureType-1],f);
+      if(treasureType==0){
+        setColorOnFace(FIELD_COLOR,f);
+      }else{
+        setColorOnFace(treasureColor[treasureType-1],f);
+      }
     }
   }
 }
@@ -270,7 +414,41 @@ bool noNeighborsAttacking(){
 }
 
 void miningLoop(){
-  
+
+
+  // In this case I've used the attacks as treasure types, but only when
+  // coupled with the PLAYER blinktype. 
+  // FIRE is ruby, POISON is emerald, and VOID is gold
+  FOREACH_FACE(f){
+    if (!isValueReceivedOnFaceExpired(f)){
+      if (getBlinkType(getLastValueReceivedOnFace(f)) == PLAYER){
+        if (getAttackSignal(getLastValueReceivedOnFace(f)) == FIRE){
+          if(treasureType==1){
+            attackSignal=CORRECT;
+          }else{
+            attackSignal=INCORRECT;
+          }
+        }else if (getAttackSignal(getLastValueReceivedOnFace(f)) == POISON){
+          if(treasureType==2){
+            attackSignal=CORRECT;
+          }else{
+            attackSignal=INCORRECT;
+          }
+        }
+        if (getAttackSignal(getLastValueReceivedOnFace(f)) == VOID){
+          if(treasureType==3){
+            if(goldMineTimer.isExpired()){
+              goldMineTimer.set(GOLD_MINE_TIME);
+            }else if (goldMineTimer.getRemaining()<GOLD_MINE_TIME/2){
+              attackSignal=CORRECT;
+            }
+          }else{
+            attackSignal=INCORRECT;
+          }
+        }
+      }
+    }
+  }
 }
 
 byte getBlinkType(byte data){
