@@ -127,6 +127,55 @@ void loop() {
       dragonWaitTimer.set(DRAGON_WAIT_TIME+extraTime);
      }
   }
+  
+  //PLAYER Pieces
+  if(blinkType==PLAYER){
+      if(luck<1){
+        isDead=true;
+      }
+      //listen for damage
+      FOREACH_FACE(f) {
+        if (!isValueReceivedOnFaceExpired(f)) {//a neighbor!
+          if (getBlinkType(getLastValueReceivedOnFace(f)) == FIELD){
+            if (getAttackSignal(getLastValueReceivedOnFace(f)) == FIRE || getAttackSignal(getLastValueReceivedOnFace(f))==POISON || getAttackSignal(getLastValueReceivedOnFace(f))==VOID) {
+              if(ignoredFaces[f]==0){
+                luck--;
+                ignoredFaces[f]=1; 
+              }
+            }
+          }
+        }else{
+          ignoredFaces[f]=0;
+        }
+      }
+    // Player mining 
+    FOREACH_FACE(f){
+      if (!isValueReceivedOnFaceExpired(f)) {
+        if (getBlinkType(getLastValueReceivedOnFace(f)) == FIELD){
+          if (getAttackSignal(getLastValueReceivedOnFace(f)) == CORRECT){
+            if(ignoredFaces[f]==0){
+              if(permanentPlayerFaceType[f]==4){
+                playerScore+=3;
+              }else{
+                playerScore++;
+              }
+              ignoredFaces[f]==1;
+            }
+            playerFaceSignal[f]==CORRECT;
+          }else if(getAttackSignal(getLastValueReceivedOnFace(f)) == INCORRECT){
+            if(ignoredFaces[f]==0){
+              luck=luck-1;
+              ignoredFaces[f]==1;
+            }
+            playerFaceSignal[f]==INCORRECT;
+          }
+        }
+      }else{
+        ignoredFaces[f]==0;
+        playerFaceSignal[f]==permanentPlayerFaceType[f];
+      }
+    }
+}
 
   if(blinkType==FIELD){
    sendData = (blinkType<<5) + (attackSignal<<2);
@@ -198,56 +247,6 @@ void inertLoop(){
           break;
      }
      hiddenAttackSignal=INERT;
-   }
- }else{
- //PLAYER Pieces
-
-
-      //listen for damage
-      FOREACH_FACE(f) {
-        if (!isValueReceivedOnFaceExpired(f)) {//a neighbor!
-          if (getBlinkType(getLastValueReceivedOnFace(f)) == FIELD){
-            if (getAttackSignal(getLastValueReceivedOnFace(f)) == FIRE || getAttackSignal(getLastValueReceivedOnFace(f))==POISON || getAttackSignal(getLastValueReceivedOnFace(f))==VOID) {
-              if(ignoredFaces[f]==0){
-                luck--;
-                ignoredFaces[f]=1; 
-              }
-            }
-          }
-        }else{
-          ignoredFaces[f]=0;
-        }
-      }
-
-    // Player mining 
-    FOREACH_FACE(f){
-      if (!isValueReceivedOnFaceExpired(f)) {
-        if (getBlinkType(getLastValueReceivedOnFace(f)) == FIELD){
-          if (getAttackSignal(getLastValueReceivedOnFace(f)) == CORRECT){
-            if(ignoredFaces[f]==0){
-              if(permanentPlayerFaceType[f]==4){
-                playerScore+=3;
-              }else{
-                playerScore++;
-              }
-              ignoredFaces[f]==1;
-            }
-            playerFaceSignal[f]==CORRECT;
-          }else if(getAttackSignal(getLastValueReceivedOnFace(f)) == INCORRECT){
-            if(ignoredFaces[f]==0){
-              luck--;
-              ignoredFaces[f]==1;
-            }
-            playerFaceSignal[f]==INCORRECT;
-          }
-        }
-      }else{
-        ignoredFaces[f]==0;
-        playerFaceSignal[f]==permanentPlayerFaceType[f];
-      }
-    }
-   if(luck<1){
-      isDead=true;
    }
  }
 }
