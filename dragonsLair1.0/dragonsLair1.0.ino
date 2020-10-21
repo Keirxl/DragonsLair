@@ -17,7 +17,7 @@
 #define DRAGON_ATTACK_DURATION 1000
 #define IGNORE_TIME 700
 #define GOLD_MINE_TIME 6000 //cause half of that is 3 sec.
-#define TREASURE_SPAWN_TIME 2000
+#define TREASURE_SPAWN_TIME 3000
 
 //[A][B][C][D][E][F]
 
@@ -158,20 +158,20 @@ void loop() {
               }else{
                 playerScore++;
               }
-              ignoredFaces[f]==1;
+              ignoredFaces[f]=1;
             }
-            playerFaceSignal[f]==CORRECT;
+            playerFaceSignal[f]=CORRECT;
           }else if(getAttackSignal(getLastValueReceivedOnFace(f)) == INCORRECT){
             if(ignoredFaces[f]==0){
-              luck=luck-1;
-              ignoredFaces[f]==1;
+              luck--;
+              ignoredFaces[f]=1;
             }
-            playerFaceSignal[f]==INCORRECT;
+            playerFaceSignal[f]=INCORRECT;
           }
         }
       }else{
-        ignoredFaces[f]==0;
-        playerFaceSignal[f]==permanentPlayerFaceType[f];
+        ignoredFaces[f]=0;
+        playerFaceSignal[f]=permanentPlayerFaceType[f];
       }
     }
 }
@@ -210,7 +210,7 @@ void inertLoop(){
     if(ignoreAttacksTimer.isExpired()){
       FOREACH_FACE(f) {
         if (!isValueReceivedOnFaceExpired(f)) {//a neighbor!
- 
+          if(getBlinkType(getLastValueReceivedOnFace(f)) == FIELD){
             if (getAttackSignal(getLastValueReceivedOnFace(f)) == FIRE || getAttackSignal(getLastValueReceivedOnFace(f))==POISON || getAttackSignal(getLastValueReceivedOnFace(f))==VOID) {
               if(hiddenAttackSignal==INERT){
                 hiddenAttackSignal=getAttackSignal(getLastValueReceivedOnFace(f));
@@ -226,7 +226,7 @@ void inertLoop(){
                 }
               }
             }
-   
+          }
         }
       }
     }
@@ -310,7 +310,7 @@ void correctLoop(){
         if (getAttackSignal(getLastValueReceivedOnFace(f))==CORRECT){
            treasureType=0;
            treasureSpawnTimer.set(TREASURE_SPAWN_TIME);
-           attackSignal=INERT;
+           //attackSignal=INERT;
         }
       }
     }
@@ -333,14 +333,8 @@ void displayLoop(){
   if(isDragon){
     setColor(MAGENTA);
   }else if(blinkType==PLAYER){
-    if(!isAlone()){
-      FOREACH_FACE(f){
-        if(getAttackSignal(getLastValueReceivedOnFace(f))==CORRECT){
-          setColorOnFace(GREEN,f);
-        }else if(getAttackSignal(getLastValueReceivedOnFace(f))==INCORRECT){
-          setColorOnFace(RED,f);
-        }
-      }
+    if(isDead){
+      setColor(WHITE);
     }else{
       setColor(FIELD_COLOR);
       setColorOnFace(RED,0);
@@ -361,21 +355,14 @@ void displayLoop(){
       case INERT:
         fieldDisplay();
         break;
-      case CORRECT:
-        setColor(WHITE);
-          FOREACH_FACE(f){
-            if(getAttackSignal(getLastValueReceivedOnFace(f))==CORRECT){
-              setColorOnFace(GREEN,f);
-            }else if(getAttackSignal(getLastValueReceivedOnFace(f))==INCORRECT){
-              setColorOnFace(RED,f);
-            }
-          }
-        break;
-      case INCORRECT:
-        setColor(BLUE);
-        break;
       case RESOLVE:
         break;
+      case CORRECT:
+        setColor(WHITE);
+        break;
+      case INCORRECT:
+         setColor(BLUE);
+         break;
     }
   }
   
@@ -385,15 +372,11 @@ void displayLoop(){
 void fieldDisplay(){
   FOREACH_FACE(f){
     if (!isValueReceivedOnFaceExpired(f)) {
-      if (getBlinkType(getLastValueReceivedOnFace(f)) == PLAYER){
-        if (getAttackSignal(getLastValueReceivedOnFace(f)) == FIRE){
-          setColorOnFace(WHITE,f); 
+        if (getBlinkType(getLastValueReceivedOnFace(f)) == FIELD){
+          setColorOnFace(FIELD_COLOR,f);
         }
-      }else{
-        setColorOnFace(FIELD_COLOR,f);
-      }
     }else{
-      if(treasureType==0){
+      if(!treasureSpawnTimer.isExpired()){
         setColorOnFace(FIELD_COLOR,f);
       }else{
         setColorOnFace(treasureColor[treasureType-1],f);
