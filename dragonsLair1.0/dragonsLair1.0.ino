@@ -91,14 +91,6 @@ void loop() {
     }
   }
 
-  //sets the player piece
-  if(isAlone()){
-    if(buttonDoubleClicked()){
-        blinkType=PLAYER;
-        isDead=false;
-    }
-  }
-
   //dragonAttacks
   //CHANGE THIS:
   // add time to the DRAGON_WAIT_TIME according to which attack you are doing
@@ -129,6 +121,13 @@ void loop() {
   }
   
   //PLAYER Pieces
+  //sets the player piece
+  if(isAlone()){
+    if(buttonDoubleClicked()){
+        blinkType=PLAYER;
+        isDead=false;
+    }
+  }
   if(blinkType==PLAYER){
       if(luck<1){
         isDead=true;
