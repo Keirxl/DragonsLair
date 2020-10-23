@@ -33,7 +33,7 @@ bool isDragon=false;
 
 int playerScore=0;
 byte ignoredFaces[6]={0,0,0,0,0,0};
-byte luck=6;
+byte luck=3;
 bool isDead=false;
 
 byte treasureType=0; // 1 for ruby, 2 for emerald, 3 for Gold
