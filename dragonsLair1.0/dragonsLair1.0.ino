@@ -359,12 +359,6 @@ void displayLoop(){
         break;
       case RESOLVE:
         break;
-      case CORRECT:
-        setColor(WHITE);
-        break;
-      case INCORRECT:
-         setColor(BLUE);
-         break;
     }
   }
   
