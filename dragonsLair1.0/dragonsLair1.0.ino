@@ -128,7 +128,82 @@ void loop() {
         isDead=false;
     }
   }
-  if(blinkType==PLAYER){
+
+  if(blinkType==FIELD){
+   sendData = (blinkType<<5) + (attackSignal<<2);
+   setValueSentOnAllFaces(sendData);
+  }else if (blinkType==PLAYER){
+    FOREACH_FACE(f){
+      sendData = (blinkType<<5) + (playerFaceSignal[f]<<2);
+      setValueSentOnFace(sendData,f);
+    }
+  }
+
+   displayLoop();
+  
+}
+
+void inertLoop(){
+
+  //All things not Player Piece related
+  if(blinkType==FIELD){
+  
+    //treasure spawning
+      if(treasureSpawnTimer.isExpired()){
+        if(treasureType==0){
+          treasureType=(random(99)%3)+1;
+        }
+      }
+    
+    
+
+    //recieves attacks and delays sending them until it's time 
+    if(ignoreAttacksTimer.isExpired()){
+      FOREACH_FACE(f) {
+        if (!isValueReceivedOnFaceExpired(f)) {//a neighbor!
+          if(getBlinkType(getLastValueReceivedOnFace(f)) == FIELD){
+            if (getAttackSignal(getLastValueReceivedOnFace(f)) == FIRE || getAttackSignal(getLastValueReceivedOnFace(f))==POISON || getAttackSignal(getLastValueReceivedOnFace(f))==VOID) {
+              if(hiddenAttackSignal==INERT){
+                hiddenAttackSignal=getAttackSignal(getLastValueReceivedOnFace(f));
+                if(hiddenAttackSignal==FIRE){
+                  //set timer and display fire but don't BE fire until timer is up
+                  delayTimer.set(FIRE_DELAY_TIME);
+                }else if(hiddenAttackSignal==POISON){
+                  //setTimer for poisionDisplay but don't BE poison until timer is out
+                  delayTimer.set(POISON_DELAY_TIME);
+                }else if(hiddenAttackSignal==VOID){
+                  //set timer and display void, but don't BE void until timer is out
+                  delayTimer.set(VOID_DELAY_TIME);
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  
+  //When the delay is over, it's time to send the signal and set the duration of the attack
+   if(delayTimer.isExpired()){
+     attackSignal=hiddenAttackSignal;
+     switch(hiddenAttackSignal){
+        case FIRE:
+          attackDurationTimer.set(FIRE_DURATION);
+          break;
+        case POISON:
+          attackDurationTimer.set(POISON_DURATION);
+          break;
+        case VOID:
+          attackDurationTimer.set(VOID_DURATION);
+          break;
+     }
+     hiddenAttackSignal=INERT;
+   }
+
+   //Mining
+   miningLoop();
+ }
+ 
+   if(blinkType==PLAYER){
       if(luck<1){
         isDead=true;
       }
@@ -174,80 +249,7 @@ void loop() {
         playerFaceSignal[f]=permanentPlayerFaceType[f];
       }
     }
-}
-
-  if(blinkType==FIELD){
-   sendData = (blinkType<<5) + (attackSignal<<2);
-   setValueSentOnAllFaces(sendData);
-  }else if (blinkType==PLAYER){
-    FOREACH_FACE(f){
-      sendData = (blinkType<<5) + (playerFaceSignal[f]<<2);
-      setValueSentOnFace(sendData,f);
-    }
   }
-
-   displayLoop();
-  
-}
-
-void inertLoop(){
-
-  //All things not Player Piece related
-  if(blinkType==FIELD){
-    //handles mining
-    miningLoop();
-  
-    //treasure spawning
-    if(treasureType==0){
-      if(treasureSpawnTimer.isExpired()){
-        treasureType=(random(99)%3)+1;
-      }
-    }
-    
-    //ADD PIECE SO SIGNAL PROPOGATES THROUGH FIELD BUT NOT PLAYER?
-    //the abouve techinally doesn't matter...
-    //recieves attacks and delays sending them until it's time 
-    if(ignoreAttacksTimer.isExpired()){
-      FOREACH_FACE(f) {
-        if (!isValueReceivedOnFaceExpired(f)) {//a neighbor!
-          if(getBlinkType(getLastValueReceivedOnFace(f)) == FIELD){
-            if (getAttackSignal(getLastValueReceivedOnFace(f)) == FIRE || getAttackSignal(getLastValueReceivedOnFace(f))==POISON || getAttackSignal(getLastValueReceivedOnFace(f))==VOID) {
-              if(hiddenAttackSignal==INERT){
-                hiddenAttackSignal=getAttackSignal(getLastValueReceivedOnFace(f));
-                if(hiddenAttackSignal==FIRE){
-                  //set timer and display fire but don't BE fire until timer is up
-                  delayTimer.set(FIRE_DELAY_TIME);
-                }else if(hiddenAttackSignal==POISON){
-                  //setTimer for poisionDisplay but don't BE poison until timer is out
-                  delayTimer.set(POISON_DELAY_TIME);
-                }else if(hiddenAttackSignal==VOID){
-                  //set timer and display void, but don't BE void until timer is out
-                  delayTimer.set(VOID_DELAY_TIME);
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  
-  //When the delay is over, it's time to send the signal and set the duration of the attack
-   if(delayTimer.isExpired()){
-     attackSignal=hiddenAttackSignal;
-     switch(hiddenAttackSignal){
-        case FIRE:
-          attackDurationTimer.set(FIRE_DURATION);
-          break;
-        case POISON:
-          attackDurationTimer.set(POISON_DURATION);
-          break;
-        case VOID:
-          attackDurationTimer.set(VOID_DURATION);
-          break;
-     }
-     hiddenAttackSignal=INERT;
-   }
- }
 }
 
 void fireLoop(){
@@ -310,7 +312,7 @@ void correctLoop(){
         if (getAttackSignal(getLastValueReceivedOnFace(f))==CORRECT){
            treasureType=0;
            treasureSpawnTimer.set(TREASURE_SPAWN_TIME);
-           //attackSignal=INERT;
+           attackSignal=INERT;
         }
       }
     }
@@ -422,8 +424,7 @@ void miningLoop(){
           }else{
             attackSignal=INCORRECT;
           }
-        }
-        if (getAttackSignal(getLastValueReceivedOnFace(f)) == VOID){
+        }else if (getAttackSignal(getLastValueReceivedOnFace(f)) == VOID){
           if(treasureType==3){
             if(goldMineTimer.isExpired()){
               goldMineTimer.set(GOLD_MINE_TIME);
