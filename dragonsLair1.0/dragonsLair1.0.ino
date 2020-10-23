@@ -126,6 +126,7 @@ void loop() {
     if(buttonDoubleClicked()){
         blinkType=PLAYER;
         isDead=false;
+        luck=3;
     }
   }
 
@@ -154,8 +155,6 @@ void inertLoop(){
           treasureType=(random(99)%3)+1;
         }
       }
-    
-    
 
     //recieves attacks and delays sending them until it's time 
     if(ignoreAttacksTimer.isExpired()){
@@ -296,8 +295,10 @@ void resolveLoop(){
   if(!isDragon){
     FOREACH_FACE(f) {
       if (!isValueReceivedOnFaceExpired(f)) {//a neighbor!
-        if (getAttackSignal(getLastValueReceivedOnFace(f)) == FIRE || getAttackSignal(getLastValueReceivedOnFace(f))==POISON || getAttackSignal(getLastValueReceivedOnFace(f))==VOID) {//This neighbor isn't in RESOLVE. Stay in RESOLVE
-          attackSignal = RESOLVE;
+        if (getAttackSignal(getLastValueReceivedOnFace(f)) == FIELD){
+          if (getAttackSignal(getLastValueReceivedOnFace(f)) == FIRE || getAttackSignal(getLastValueReceivedOnFace(f))==POISON || getAttackSignal(getLastValueReceivedOnFace(f))==VOID) {//This neighbor isn't in RESOLVE. Stay in RESOLVE
+            attackSignal = RESOLVE;
+          }
         }
       }
     }
