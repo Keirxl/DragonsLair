@@ -370,6 +370,12 @@ void fieldDisplay(){
     if (!isValueReceivedOnFaceExpired(f)) {
         if (getBlinkType(getLastValueReceivedOnFace(f)) == FIELD){
           setColorOnFace(FIELD_COLOR,f);
+        }else{
+          if(!treasureSpawnTimer.isExpired()){
+            setColorOnFace(FIELD_COLOR,f);
+          }else{
+            setColorOnFace(treasureColor[treasureType-1],f);
+          }
         }
     }else{
       if(!treasureSpawnTimer.isExpired()){
