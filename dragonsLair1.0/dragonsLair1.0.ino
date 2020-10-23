@@ -17,7 +17,7 @@
 #define DRAGON_ATTACK_DURATION 1000
 #define IGNORE_TIME 700
 #define GOLD_MINE_TIME 6000 //cause half of that is 3 sec.
-#define TREASURE_SPAWN_TIME 3000
+#define TREASURE_SPAWN_TIME 2000
 
 //[A][B][C][D][E][F]
 
