@@ -7,13 +7,13 @@
 #define FIRE_DURATION 1300
 #define POISON_DURATION 3000
 #define VOID_DURATION 5000
-#define FIRE_DELAY_TIME 175
+#define FIRE_DELAY_TIME 90
 #define FIRE_EXTRA_TIME 1000
 #define VOID_DELAY_TIME 500
 #define VOID_EXTRA_TIME 3000
-#define POISON_DELAY_TIME 750
+#define POISON_DELAY_TIME 500
 #define POISON_EXTRA_TIME 4000
-#define DRAGON_WAIT_TIME 5000
+#define DRAGON_WAIT_TIME 6000
 #define DRAGON_ATTACK_DURATION 1000
 #define IGNORE_TIME 700
 #define GOLD_MINE_TIME 6000 //cause half of that is 3 sec.
@@ -96,29 +96,6 @@ void loop() {
   // add time to the DRAGON_WAIT_TIME according to which attack you are doing
   // because you want to give void longer to dissapate and less time to fire
   //also add something so that there's a chance that no attack will happen at all
-  if(isDragon){
-     if(dragonWaitTimer.isExpired()){
-      byte maybeAttack = random(100);
-      if(maybeAttack>40){
-        if(noNeighborsAttacking){
-          dragonAttackTimer.set(DRAGON_ATTACK_DURATION);
-          byte whichAttack=random(99);
-          whichAttack=(whichAttack%3)+1;
-          if(whichAttack==1){
-            attackSignal=POISON;
-            extraTime=POISON_EXTRA_TIME;
-          }else if(whichAttack==2){
-            attackSignal=FIRE;
-            extraTime=FIRE_EXTRA_TIME;
-          }else if(whichAttack==3){
-            attackSignal=VOID;
-            extraTime=VOID_EXTRA_TIME;
-          }
-        }
-      }
-      dragonWaitTimer.set(DRAGON_WAIT_TIME+extraTime);
-     }
-  }
   
   //PLAYER Pieces
   //sets the player piece
@@ -145,6 +122,29 @@ void loop() {
 }
 
 void inertLoop(){
+
+   if(isDragon){
+     if(dragonWaitTimer.isExpired()){
+      byte maybeAttack = random(100);
+      if(maybeAttack>40){
+        if(noNeighborsAttacking){
+          byte whichAttack=random(99);
+          whichAttack=(whichAttack%3)+1;
+          if(whichAttack==1){
+            attackSignal=POISON;
+            extraTime=POISON_EXTRA_TIME;
+          }else if(whichAttack==2){
+            attackSignal=FIRE;
+            extraTime=FIRE_EXTRA_TIME;
+          }else if(whichAttack==3){
+            attackSignal=VOID;
+            extraTime=VOID_EXTRA_TIME;
+          }
+          attackDurationTimer.set(FIRE_DURATION);
+        }
+      }
+     }
+  }
 
   //All things not Player Piece related
   if(blinkType==FIELD){
@@ -182,21 +182,23 @@ void inertLoop(){
     }
   
   //When the delay is over, it's time to send the signal and set the duration of the attack
-   if(delayTimer.isExpired()){
-     attackSignal=hiddenAttackSignal;
-     switch(hiddenAttackSignal){
-        case FIRE:
-          attackDurationTimer.set(FIRE_DURATION);
-          break;
-        case POISON:
-          attackDurationTimer.set(POISON_DURATION);
-          break;
-        case VOID:
-          attackDurationTimer.set(VOID_DURATION);
-          break;
+   if(!isDragon){
+     if(delayTimer.isExpired()){
+       attackSignal=hiddenAttackSignal;
+       switch(hiddenAttackSignal){
+          case FIRE:
+            attackDurationTimer.set(FIRE_DURATION);
+            break;
+          case POISON:
+            attackDurationTimer.set(POISON_DURATION);
+            break;
+          case VOID:
+            attackDurationTimer.set(VOID_DURATION);
+            break;
+       }
+       hiddenAttackSignal=INERT;
      }
-     hiddenAttackSignal=INERT;
-   }
+    }
 
    //Mining
    miningLoop();
@@ -252,39 +254,49 @@ void inertLoop(){
 }
 
 void fireLoop(){
-  if(isDragon){
-    if(dragonAttackTimer.isExpired()){
-      attackSignal=INERT;
-    }
-  }else{
     if(attackDurationTimer.isExpired()){
       attackSignal=RESOLVE;
     }
-  }
+    FOREACH_FACE(f) {
+      if (!isValueReceivedOnFaceExpired(f)) {//a neighbor!
+        if (getAttackSignal(getLastValueReceivedOnFace(f)) == FIELD){
+          if (getAttackSignal(getLastValueReceivedOnFace(f)) == FIRE || getAttackSignal(getLastValueReceivedOnFace(f))==POISON || getAttackSignal(getLastValueReceivedOnFace(f))==VOID) {//This neighbor isn't in RESOLVE. Stay in RESOLVE
+            attackSignal = FIRE;
+          }
+        }
+      }
+    }
 }
 
 void poisonLoop(){
-  if(isDragon){
-    if(dragonAttackTimer.isExpired()){
-      attackSignal=INERT;
-    }
-  }else{
     if(attackDurationTimer.isExpired()){
       attackSignal=RESOLVE;
     }
-  }
+    FOREACH_FACE(f) {
+      if (!isValueReceivedOnFaceExpired(f)) {//a neighbor!
+        if (getAttackSignal(getLastValueReceivedOnFace(f)) == FIELD){
+          if (getAttackSignal(getLastValueReceivedOnFace(f)) == FIRE || getAttackSignal(getLastValueReceivedOnFace(f))==POISON || getAttackSignal(getLastValueReceivedOnFace(f))==VOID) {//This neighbor isn't in RESOLVE. Stay in RESOLVE
+            attackSignal = POISON;
+          }
+        }
+      }
+    }
 }
 
 void voidLoop(){
-  if(isDragon){
-    if(dragonAttackTimer.isExpired()){
-      attackSignal=INERT;
-    }
-  }else{
     if(attackDurationTimer.isExpired()){
       attackSignal=RESOLVE;
+    }  
+    FOREACH_FACE(f) {
+      if (!isValueReceivedOnFaceExpired(f)) {//a neighbor!
+        if (getAttackSignal(getLastValueReceivedOnFace(f)) == FIELD){
+          if (getAttackSignal(getLastValueReceivedOnFace(f)) == FIRE || getAttackSignal(getLastValueReceivedOnFace(f))==POISON || getAttackSignal(getLastValueReceivedOnFace(f))==VOID) {//This neighbor isn't in RESOLVE. Stay in RESOLVE
+            attackSignal = VOID;
+          }
+        }
+      }
     }
-  }
+  
 }
 
 void resolveLoop(){
@@ -292,7 +304,10 @@ void resolveLoop(){
 
   ignoreAttacksTimer.set(IGNORE_TIME);
 
-  if(!isDragon){
+  if(isDragon){
+    dragonWaitTimer.set(DRAGON_WAIT_TIME + extraTime);
+  }
+  
     FOREACH_FACE(f) {
       if (!isValueReceivedOnFaceExpired(f)) {//a neighbor!
         if (getAttackSignal(getLastValueReceivedOnFace(f)) == FIELD){
@@ -302,7 +317,6 @@ void resolveLoop(){
         }
       }
     }
-  }
 }
 
 void correctLoop(){
