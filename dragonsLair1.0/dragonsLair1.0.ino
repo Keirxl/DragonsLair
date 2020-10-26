@@ -9,7 +9,7 @@
 #define VOID_DURATION 5000
 #define FIRE_DELAY_TIME 90
 #define FIRE_EXTRA_TIME 1000
-#define VOID_DELAY_TIME 500
+#define VOID_DELAY_TIME 90
 #define VOID_EXTRA_TIME 3000
 #define POISON_DELAY_TIME 500
 #define POISON_EXTRA_TIME 4000
@@ -260,7 +260,7 @@ void fireLoop(){
     FOREACH_FACE(f) {
       if (!isValueReceivedOnFaceExpired(f)) {//a neighbor!
         if (getAttackSignal(getLastValueReceivedOnFace(f)) == FIELD){
-          if (getAttackSignal(getLastValueReceivedOnFace(f)) == FIRE || getAttackSignal(getLastValueReceivedOnFace(f))==POISON || getAttackSignal(getLastValueReceivedOnFace(f))==VOID) {//This neighbor isn't in RESOLVE. Stay in RESOLVE
+          if (getAttackSignal(getLastValueReceivedOnFace(f)) == INERT){
             attackSignal = FIRE;
           }
         }
@@ -275,13 +275,15 @@ void poisonLoop(){
     FOREACH_FACE(f) {
       if (!isValueReceivedOnFaceExpired(f)) {//a neighbor!
         if (getAttackSignal(getLastValueReceivedOnFace(f)) == FIELD){
-          if (getAttackSignal(getLastValueReceivedOnFace(f)) == FIRE || getAttackSignal(getLastValueReceivedOnFace(f))==POISON || getAttackSignal(getLastValueReceivedOnFace(f))==VOID) {//This neighbor isn't in RESOLVE. Stay in RESOLVE
+          if (getAttackSignal(getLastValueReceivedOnFace(f)) == INERT){
             attackSignal = POISON;
           }
         }
       }
     }
 }
+
+// PUT miningLoop() IN VOID LOOP
 
 void voidLoop(){
     if(attackDurationTimer.isExpired()){
@@ -290,7 +292,7 @@ void voidLoop(){
     FOREACH_FACE(f) {
       if (!isValueReceivedOnFaceExpired(f)) {//a neighbor!
         if (getAttackSignal(getLastValueReceivedOnFace(f)) == FIELD){
-          if (getAttackSignal(getLastValueReceivedOnFace(f)) == FIRE || getAttackSignal(getLastValueReceivedOnFace(f))==POISON || getAttackSignal(getLastValueReceivedOnFace(f))==VOID) {//This neighbor isn't in RESOLVE. Stay in RESOLVE
+          if (getAttackSignal(getLastValueReceivedOnFace(f)) == INERT){
             attackSignal = VOID;
           }
         }
