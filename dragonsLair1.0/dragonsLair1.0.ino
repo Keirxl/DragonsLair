@@ -4,6 +4,8 @@
 // 
 
 #define FIELD_COLOR makeColorHSB(200,60,100)
+#define MAX_GAME_TIME 240000 //four Minutes
+#define MAX_TIME_BETWEEN_ATTACKS 15000
 #define FIRE_DURATION 1300
 #define POISON_DURATION 3000
 #define VOID_DURATION 5000
@@ -306,8 +308,10 @@ void resolveLoop(){
 
   ignoreAttacksTimer.set(IGNORE_TIME);
 
+  byte increasingWaitTime = map(millis(),0,MAX_GAME_TIME,0,MAX_TIME_BETWEEN_ATTACKS);
+  byte timeBetweenAttacks = (MAX_TIME_BETWEEN_ATTACKS-increasingWaitTime+extraTime);
   if(isDragon){
-    dragonWaitTimer.set(DRAGON_WAIT_TIME + extraTime);
+    dragonWaitTimer.set(timeBetweenAttacks);
   }
   
     FOREACH_FACE(f) {
