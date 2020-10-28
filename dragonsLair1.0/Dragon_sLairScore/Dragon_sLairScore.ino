@@ -22,7 +22,7 @@ void loop() {
   
   if(buttonDoubleClicked()){
     //playerScore=random(RANDOMSCORE);
-    playerScore=256;
+    playerScore=333;
     hundreds =(playerScore-(playerScore%100))/100;
     tens = ((playerScore%100)-(playerScore%10))/10;
     ones = (playerScore%10);
@@ -47,13 +47,14 @@ void scoreDisplay(){
         whichScore=4;
         ones--;
       }else{
-        dragonWaitTimer.set(BLINK_PAUSE_TIME);
+        whichScore=10;
+        dragonWaitTimer.set(BLINK_PAUSE_TIME); //how long to wait until starting over
         hundreds = (playerScore-(playerScore%100))/100;
         tens = ((playerScore%100)-(playerScore%10))/10;
         ones = (playerScore%10);
       }
-      attackDurationTimer.set(BLINK_SHOW_TIME);
-      treasureSpawnTimer.set(BLINK_WAIT_TIME);
+      attackDurationTimer.set(BLINK_SHOW_TIME); //how long to show the flashes
+      treasureSpawnTimer.set(BLINK_WAIT_TIME); // how long to wait to flash again
     }
   }
    setColorOnFace(dim(YELLOW,120),0);
