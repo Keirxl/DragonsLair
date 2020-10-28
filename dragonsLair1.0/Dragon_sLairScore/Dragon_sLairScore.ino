@@ -1,5 +1,5 @@
 
-#define RANDOMSCORE 200
+#define RANDOMSCORE 800
 #define BLINK_WAIT_TIME 700
 #define BLINK_PAUSE_TIME 3000
 
@@ -18,8 +18,7 @@ void setup() {
 void loop() {
   
   if(buttonDoubleClicked()){
-    //playerScore=random(200)+50;
-    playerScore=542;
+    playerScore=random(RANDOMSCORE);
     hundreds =(playerScore-(playerScore%100))/100;
     tens = ((playerScore%100)-(playerScore%10))/10;
     ones = (playerScore%10);
