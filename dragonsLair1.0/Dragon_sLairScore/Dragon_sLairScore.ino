@@ -21,8 +21,7 @@ void setup() {
 void loop() {
   
   if(buttonDoubleClicked()){
-    //playerScore=random(RANDOMSCORE);
-    playerScore=333;
+    playerScore=random(RANDOMSCORE);
     hundreds =(playerScore-(playerScore%100))/100;
     tens = ((playerScore%100)-(playerScore%10))/10;
     ones = (playerScore%10);
